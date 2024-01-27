@@ -14,7 +14,6 @@ libData = dict.fromkeys(["Arduino Path", "Source Path", "Header File",
 
 # This function prints out the errors messages defined for this script.
 def error_out(error, libData):
-
     if error == 0:
         print(ERROR_FLAIR)
         sys.exit("Incorrect path to the Arduino Library.")
@@ -40,93 +39,98 @@ def error_out(error, libData):
 
 # This functions gets the path to the Arduino Library directory through the
 # name given via command line. If no argument is provided then it checks to see
-# if the script was run from within the folder. 
+# if the script was run from within the folder.
 def get_path_to_arduino_dir():
-    
     if len(sys.argv) > 1:
-
         userDir = sys.argv[1]
 
         if FILE_PATH_OPERATOR in userDir and os.path.isdir(userDir):
             if (verify_arduino_directory(userDir)):
-                    return userDir  
+                    return userDir
 
         elif os.path.isdir(PATH_TO_GITHUB + userDir):
             if (verify_arduino_directory(PATH_TO_GITHUB + userDir)):
                 return PATH_TO_GITHUB + userDir
+
         else:
             error_out(0, libData)
 
     else:
-        if verify_arduino_directory(os.getcwd()): 
-            return os.getcwd() 
+        if verify_arduino_directory(os.getcwd()):
+            return os.getcwd()
         else:
             error_out(0, libData)
 
 # This function retrieves the directory path to the source ("src") file in the
 # Arduino Library Directory.
 def get_path_to_src_dir(pPath):
-    
     for file in os.listdir(pPath):
         if "src" in file:
             return pPath + os.sep + file
-    
+
     error_out(1, libData)
 
 # This function checks that the Arduino Library is "valid" by checking that
-# there is a "src" file in it. 
+# there is a "src" file in it.
 def verify_arduino_directory(arPath):
     for file in os.listdir(arPath):
         if "src" in file:
             return True
-    
+
     error_out(2, libData)
 
 # This function retrieves the directory path to the header file.
 def get_path_to_header(sPath):
-
+    foundHeader = False
+    pathToHeader = ''
+    print("Search for header files containing a 'CLASS'")
     for file in os.listdir(sPath):
         if file.endswith(".h"):
             if(confirm_header_file(sPath + os.sep + file)):
-                return sPath + os.sep + file
-            
+                pathToHeader = sPath + os.sep + file
+                foundHeader = True
 
-# This function confirms that there is a header file in teh Arduino Library 
+    if foundHeader:
+        print('\n')
+        return pathToHeader
+    else:
+        error_out(3, libData)
+
+# This function confirms that there is a header file in the Arduino Library
 # folder.
 def confirm_header_file(fPath):
-    
+    print(fPath)
     with open(fPath, 'r') as h:
         for line in h:
             if "class" in line:
                 return True
-    
-    error_out(3, libData)
-                               
+    return False
+
 # This function gets the name of the header file in the Arduino Library folder.
 def get_header_file_name(sPath):
-    
+    return os.path.basename(sPath)
+
     for file in os.listdir(sPath):
         if file.endswith(".h"):
             headerFile = file
             return headerFile
 
-# This function gets the class name from the header file.        
+# This function gets the class name from the header file.
 def get_class_name(headerPath):
-
-    with open(headerPath, 'r') as h: 
+    with open(headerPath, 'r') as h:
         for line in h:
             if "class" in line:
                 words = line.split(' ')
-                className = words[1] 
+                className = words[1]
                 if "\n" in className:
                     className = className.rstrip('\n')
                 return className
-    
+
     error_out(4, libData)
 
-# This function gets the function names from the header file.        
+# This function gets the function names from the header file.
 def get_functions(sPath, hName, cName, fList):
-   
+
     os.chdir(sPath)
 
     header = CppHeaderParser.CppHeader(hName)
@@ -146,15 +150,14 @@ def get_functions(sPath, hName, cName, fList):
     else:
         return fList
 
-# This function gets the constants from the header file.        
+# This function gets the constants from the header file.
 def get_constants_and_enums(sPath, hName, cList, eList):
-
     os.chdir(sPath)
 
     header = CppHeaderParser.CppHeader(hName)
 
-    # Ignore the protection define at the top of the list. 
-    for define in header.defines: 
+    # Ignore the protection define at the top of the list.
+    for define in header.defines:
         if define.startswith("_"):
             continue
         cList.append(define.split(" ")[0])
@@ -163,7 +166,7 @@ def get_constants_and_enums(sPath, hName, cList, eList):
     for i in range(len(header.enums)):
         for x in range(len(header.enums[i]["values"])):
             cList.append(header.enums[i]["values"][x]["name"])
-    
+
     # Gets the type name of the enum.
     for enum in header.enums:
         eList.append(enum["name"])
@@ -173,7 +176,7 @@ def get_constants_and_enums(sPath, hName, cList, eList):
     else:
         return cList
 
-# This function checks if the keywords.txt file is already in the library file. 
+# This function checks if the keywords.txt file is already in the library file.
 def check_if_keywords_exists(arPath):
 
     for file in os.listdir(arPath):
@@ -186,7 +189,6 @@ def check_if_keywords_exists(arPath):
 # This creates the file after all of the class names, functions, and constants
 # have been gathered.
 def format_keyword_file(lPath, cName, functions, constants, enums, hFile):
-
     os.chdir(lPath)
     exists = False
     fExists = False
@@ -195,10 +197,10 @@ def format_keyword_file(lPath, cName, functions, constants, enums, hFile):
     funcAppendList = list()
     constAppendList = list()
     enumAppendList = list()
-   
-    # This "if" statement checks for a "keywords.txt" file. If the file exists 
+
+    # This "if" statement checks for a "keywords.txt" file. If the file exists
     # then we take stock of what functions and constants are already there, and
-    # only add the ones that are not. 
+    # only add the ones that are not.
     print("Checking if keywords.txt already exists.")
     if check_if_keywords_exists(lPath):
         # Check for class name first -> that's KEYWORD1
@@ -213,7 +215,7 @@ def format_keyword_file(lPath, cName, functions, constants, enums, hFile):
                 k.seek(0)
                 k.write("Class {} \n".format(STRING_FLAIR))
                 k.write("{}\tKEYWORD1\n".format(cName))
-         
+
         with open("keywords.txt", 'r') as k:
             # Check for functions next -> KEYWORD2
             for function in functions:
@@ -223,9 +225,9 @@ def format_keyword_file(lPath, cName, functions, constants, enums, hFile):
                     if function in line:
                         fExists = True
                         break
-                
+
                 if fExists == True:
-                   continue 
+                   continue
                 else:
                     funcAppendList.append(function)
                     fExists = False
@@ -238,9 +240,9 @@ def format_keyword_file(lPath, cName, functions, constants, enums, hFile):
                     if constant in line:
                         cExists = True
                         break
-                
+
                 if cExists == True:
-                   continue 
+                   continue
                 else:
                     constAppendList.append(constant)
                     cExists = False
@@ -253,14 +255,14 @@ def format_keyword_file(lPath, cName, functions, constants, enums, hFile):
                     if enum in line:
                         eExists = True
                         break
-                
+
                 if eExists == True:
-                   continue 
+                   continue
                 else:
                     enumAppendList.append(enum)
                     eExists = False
-       
-        #The lists of missing items is ready, now they are appended to file. 
+
+        #The lists of missing items is ready, now they are appended to file.
         if len(funcAppendList) == 0:
             error_out(6, libData)
         else:
@@ -272,48 +274,45 @@ def format_keyword_file(lPath, cName, functions, constants, enums, hFile):
                 for enum in enumAppendList:
                     k.write("{}\tKEYWORD1\n".format(enum))
 
-
-    
-    #If the file does not exist (easy), just make a file with the goods. 
+    #If the file does not exist (easy), just make a file with the goods.
     else:
         print("New keywords.txt file created.")
         with open("keywords.txt", 'w') as k:
             k.write("{}\nCLASS\n{}\n".format(STRING_FLAIR, STRING_FLAIR))
             k.write("{}\tKEYWORD1\n".format(cName))
             k.write("\n{}\nFUNCTIONS\n{}\n".format(STRING_FLAIR, STRING_FLAIR))
-            for function in functions: 
+            for function in functions:
                 k.write("{}\tKEYWORD2\n".format(function))
             k.write("\n{}\nCONSTANTS\n{}\n".format(STRING_FLAIR, STRING_FLAIR))
-            for constant in constants: 
+            for constant in constants:
                 k.write("{}\tLITERAL1\n".format(constant))
             k.write("\n{}\nDATA TYPES\n{}\n".format(STRING_FLAIR, STRING_FLAIR))
-            for enum in enums: 
+            for enum in enums:
                 k.write("{}\tKEYWORD1\n".format(enum))
-            
 
 
 # This creates a new keywords file from the given ,or not given, directory
-# path. 
+# path.
 def create_keyword_file(lData):
 
     ardPath = get_path_to_arduino_dir()
     libData["Arduino Path"] = ardPath
     srcPath = get_path_to_src_dir(ardPath)
-    libData["Source Path"] = srcPath 
+    libData["Source Path"] = srcPath
 
     print("Arduino Library Path:\n{}\nPath to Source File:\
           \n{}\n{}\n".format(ardPath, srcPath, SEPERATOR))
 
     headerFilePath = get_path_to_header(srcPath)
-    libData["Header Path"] = headerFilePath 
-    headerFile = get_header_file_name(srcPath)
-    libData["Header File"] = headerFile 
+    libData["Header Path"] = headerFilePath
+    headerFile = get_header_file_name(headerFilePath)
+    libData["Header File"] = headerFile
 
     print("Header File Path:\n{}\n{}\nHeader File Name:\
           \n{}\n{}".format(headerFilePath, SEPERATOR, headerFile, SEPERATOR))
 
     className = get_class_name(headerFilePath)
-    libData["Class Name"] = className 
+    libData["Class Name"] = className
 
     print("Class name:\n{}\n{}".format(className, SEPERATOR))
 
@@ -322,26 +321,18 @@ def create_keyword_file(lData):
     get_functions(srcPath, headerFilePath, className, functionList)
     print("Functions gathered.\n{}".format(SEPERATOR))
 
-    print("Getting Literals....") 
+    print("Getting Literals....")
     constantList = list();
     enumList = list()
     get_constants_and_enums(srcPath, headerFilePath, constantList, enumList)
     print("Constants gathered.\n{}".format(SEPERATOR))
-    
+
     print("Creating Keyword File.")
     format_keyword_file(ardPath, className, functionList, constantList,
                         enumList, headerFile)
 
 
-
-
-
-
-
 #-----------------End of Functions----------------------------------------
-
-
-
 
 
 print("\n{}\nArduino Keywords.txt File Creator\n{}\n".format(STRING_FLAIR,
